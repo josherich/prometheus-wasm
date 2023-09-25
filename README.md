@@ -32,6 +32,17 @@ The features that distinguish Prometheus from other metrics and monitoring syste
 * Multiple modes of **graphing and dashboarding support**
 * Support for hierarchical and horizontal **federation**
 
+## ----------------------- WASM -----------------------
+```sh
+# in root folder
+cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" ./
+cd cmd/promtool-web
+GOOS=js GOARCH=wasm go build -o ../../promtool.wasm
+cd -
+# open index.html in your browser
+```
+## ------------------------------------------------------
+
 ## Architecture overview
 
 ![Architecture overview](documentation/images/architecture.svg)

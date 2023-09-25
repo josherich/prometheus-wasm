@@ -258,31 +258,31 @@ func (d *Discovery) Run(ctx context.Context, ch chan<- []*targetgroup.Group) {
 		case <-ctx.Done():
 			return
 
-		case event := <-d.watcher.Events:
-			// fsnotify sometimes sends a bunch of events without name or operation.
-			// It's unclear what they are and why they are sent - filter them out.
-			if len(event.Name) == 0 {
-				break
-			}
-			// Everything but a chmod requires rereading.
-			if event.Op^fsnotify.Chmod == 0 {
-				break
-			}
-			// Changes to a file can spawn various sequences of events with
-			// different combinations of operations. For all practical purposes
-			// this is inaccurate.
-			// The most reliable solution is to reload everything if anything happens.
-			d.refresh(ctx, ch)
+		// case event := <-d.watcher.Events:
+		// 	// fsnotify sometimes sends a bunch of events without name or operation.
+		// 	// It's unclear what they are and why they are sent - filter them out.
+		// 	if len(event.Name) == 0 {
+		// 		break
+		// 	}
+		// 	// Everything but a chmod requires rereading.
+		// 	if event.Op^fsnotify.Chmod == 0 {
+		// 		break
+		// 	}
+		// 	// Changes to a file can spawn various sequences of events with
+		// 	// different combinations of operations. For all practical purposes
+		// 	// this is inaccurate.
+		// 	// The most reliable solution is to reload everything if anything happens.
+		// 	d.refresh(ctx, ch)
 
 		case <-ticker.C:
 			// Setting a new watch after an update might fail. Make sure we don't lose
 			// those files forever.
 			d.refresh(ctx, ch)
 
-		case err := <-d.watcher.Errors:
-			if err != nil {
-				level.Error(d.logger).Log("msg", "Error watching file", "err", err)
-			}
+		// case err := <-d.watcher.Errors:
+		// 	if err != nil {
+		// 		level.Error(d.logger).Log("msg", "Error watching file", "err", err)
+		// 	}
 		}
 	}
 }
@@ -312,8 +312,8 @@ func (d *Discovery) stop() {
 	go func() {
 		for {
 			select {
-			case <-d.watcher.Errors:
-			case <-d.watcher.Events:
+			// case <-d.watcher.Errors:
+			// case <-d.watcher.Events:
 				// Drain all events and errors.
 			case <-done:
 				return

@@ -6,6 +6,7 @@
 
 /prometheus
 /promtool
+/promtool.wasm
 benchmark.txt
 /data
 /data-agent
