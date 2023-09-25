@@ -6,15 +6,25 @@
             const go = new Go();
             WebAssembly.instantiateStreaming(fetch("promtool.wasm"), go.importObject).then((result) => {
                 go.run(result.instance);
-            });
-            const example = `groups:
+                const example = `groups:
   - name: example
     rules:
     - record: code:prometheus_http_requests_total:sum
       expr: sum by (code) (prometheus_http_requests_total)`;
             const res = checkRules(example);
             console.log(`Result of "promtool check rules"`, res);
+
+            document.getElementById("rules").value = example;
+            document.getElementById("check_rules").onclick = () => {
+                const rules = document.getElementById("rules").value;
+                const res = checkRules(rules);
+                window.alert(res);
+            };
+        });
         </script>
     </head>
-    <body></body>
+    <body>
+        <textarea name="" id="rules" cols="30" rows="10"></textarea>
+        <button id="check_rules" onclick="checkRules()">promtool check rules</button>
+    </body>
 </html>
