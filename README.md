@@ -40,7 +40,11 @@ cd cmd/promtool-web
 GOOS=js GOARCH=wasm go build -o ../../promtool.wasm
 cd -
 # open index.html in your browser
+# e.g
+python -m http.server 8000
+chrome http://localhost:8000
 ```
+![wasm](wasm.png)
 ## ------------------------------------------------------
 
 ## Architecture overview
