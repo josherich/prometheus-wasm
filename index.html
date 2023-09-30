@@ -6,25 +6,67 @@
             const go = new Go();
             WebAssembly.instantiateStreaming(fetch("promtool.wasm"), go.importObject).then((result) => {
                 go.run(result.instance);
-                const example = `groups:
+                const ruleExample = `groups:
   - name: example
     rules:
     - record: code:prometheus_http_requests_total:sum
       expr: sum by (code) (prometheus_http_requests_total)`;
-            const res = checkRules(example);
+            const res = checkRules(ruleExample);
             console.log(`Result of "promtool check rules"`, res);
 
-            document.getElementById("rules").value = example;
+            document.getElementById("rules").value = ruleExample;
             document.getElementById("check_rules").onclick = () => {
                 const rules = document.getElementById("rules").value;
                 const res = checkRules(rules);
+                window.alert(res);
+            };
+
+            const configExample = `# my global config
+global:
+  scrape_interval: 15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+  # scrape_timeout is set to the global default (10s).
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+# A scrape configuration containing exactly one endpoint to scrape:
+# Here it's Prometheus itself.
+scrape_configs:
+  # The job name is added as a label job=<job_name> to any timeseries scraped from this config.
+  - job_name: "prometheus"
+
+    # metrics_path defaults to '/metrics'
+    # scheme defaults to 'http'.
+
+    static_configs:
+      - targets: ["localhost:9090"]`
+            document.getElementById("config").value = configExample;
+            document.getElementById("check_config").onclick = () => {
+                const config = document.getElementById("config").value;
+                const res = checkConfig(config, false, false, 'all');
                 window.alert(res);
             };
         });
         </script>
     </head>
     <body>
-        <textarea name="" id="rules" cols="30" rows="10"></textarea>
-        <button id="check_rules" onclick="checkRules()">promtool check rules</button>
+        <section>
+            <textarea name="" id="rules" cols="30" rows="10"></textarea>
+            <button id="check_rules" onclick="checkRules()">promtool check rules</button>
+        </section>
+        <section>
+            <textarea name="" id="config" cols="30" rows="10"></textarea>
+            <button id="check_config" onclick="checkConfig()">promtool check config</button>
+        </section>
     </body>
 </html>

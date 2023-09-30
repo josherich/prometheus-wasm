@@ -77,6 +77,7 @@ const (
 var lintOptions = []string{lintOptionAll, lintOptionDuplicateRules, lintOptionNone}
 
 func main() {
+	js.Global().Set("checkConfig", CheckConfigWebWrapper())
 	js.Global().Set("checkRules", CheckRulesWebWrapper())
 	<-make(chan bool)
 }
@@ -90,6 +91,22 @@ func CheckRulesWebWrapper() js.Func {
 		inputRaw := args[0].String()
 		fmt.Printf("\ninput %s\n", inputRaw)
 		errs, _ := CheckRulesWeb(inputRaw, true, false, false)
+		return errs;
+	})
+	return CheckFunc
+}
+
+func CheckConfigWebWrapper() js.Func {
+	CheckFunc := js.FuncOf(func(this js.Value, args []js.Value) any {
+		if len(args) != 4 {
+			return "Invalid number of arguments, expect content, agentMode, checkSyntaxOnly, lintSettings"
+		}
+		inputRaw := args[0].String()
+		agentMode := args[1].Bool()
+		checkSyntaxOnly := args[2].Bool()
+		lintSettings := args[3].String()
+		fmt.Printf("\ninput %s\n", inputRaw)
+		errs, _ := CheckConfigWeb(agentMode, checkSyntaxOnly, newLintConfig(lintSettings, false), inputRaw)
 		return errs;
 	})
 	return CheckFunc
@@ -292,6 +309,36 @@ func CheckServerStatus(serverURL *url.URL, checkEndpoint string, roundTripper ht
 	return nil
 }
 
+// ** WASM **
+func CheckConfigWeb(agentMode, checkSyntaxOnly bool, lintSettings lintConfig, content string) (string, int) {
+	failed := false
+	hasErrors := false
+	var returnedErrors []string
+
+	ruleFiles, err := checkConfigWeb(agentMode, content, checkSyntaxOnly)
+	if err != nil {
+		returnedErrors = append(returnedErrors, err.Error())
+	} else {
+		returnedErrors = append(returnedErrors, "SUCCESS: config has valid prometheus config file syntax")
+	}
+	rulesFailed, rulesHasErrors := checkRules(ruleFiles, lintSettings)
+	if rulesFailed {
+		failed = rulesFailed
+	}
+	if rulesHasErrors {
+		hasErrors = rulesHasErrors
+	}
+	if failed && hasErrors {
+		returnedErrors = append(returnedErrors, "Failed to pass rule checks")
+		return strings.Join(returnedErrors, ", "), failureExitCode
+	}
+	if failed && lintSettings.fatal {
+		returnedErrors = append(returnedErrors, "Failed to pass lint checks")
+		return strings.Join(returnedErrors, ", "), lintErrExitCode
+	}
+	return strings.Join(returnedErrors, ", "), successExitCode
+}
+
 // CheckConfig validates configuration files.
 func CheckConfig(agentMode, checkSyntaxOnly bool, lintSettings lintConfig, files ...string) int {
 	failed := false
@@ -362,7 +409,20 @@ func checkConfig(agentMode bool, filename string, checkSyntaxOnly bool) ([]strin
 	if err != nil {
 		return nil, err
 	}
+	return checkConfigCommon(cfg, checkSyntaxOnly)
+}
 
+// ** WASM **
+func checkConfigWeb(agentMode bool, content string, checkSyntaxOnly bool) ([]string, error) {
+	fmt.Println("Checking")
+	cfg, err := config.LoadString(content, "untitled", agentMode, false, log.NewNopLogger())
+	if err != nil {
+		return nil, err
+	}
+	return checkConfigCommon(cfg, checkSyntaxOnly)
+}
+
+func checkConfigCommon(cfg *config.Config, checkSyntaxOnly bool) ([]string, error) {
 	var ruleFiles []string
 	if !checkSyntaxOnly {
 		for _, rf := range cfg.RuleFiles {
